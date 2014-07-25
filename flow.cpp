@@ -91,7 +91,7 @@ std::complex<double> CalcE() {
   std::complex<double> sumplaqs = std::complex<double>(0,0), trace;
   std::complex<double> u1[3][3], u2[3][3],u3[3][3], u4[3][3], u23[3][3], u234[3][3];
 
-  for(int is = 0;is<opt.ns*opt.ns*opt.ns*opt.nt;is++){
+  for(int is = 0;is<opt.ns*opt.ns*opt.ns*opt.nt; is++){
           for(int imu = 0;imu<4;imu++){
                   for(int inu = imu+1;inu<4;inu++){
                           ispmu = config->neib(imu, is);
@@ -271,6 +271,10 @@ void SmallFlowStep() {
 
   CopyConfig(config, Wtpeps);
   
+  delete W0; W0 = 0;
+  delete W1; W1 = 0;
+  delete W2; W2 = 0;
+  delete Wtpeps; Wtpeps = 0;
 }
 
 int main(int argc, char *argv[]) {

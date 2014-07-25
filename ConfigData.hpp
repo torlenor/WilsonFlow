@@ -170,6 +170,8 @@ ConfigData::ConfigData(int len1, int len2, int len3, int len4, int md, bool vb=t
 
 ConfigData::~ConfigData(){
 	Delete2D(neibArray, nsite);
+
+  delete A; A=0;
 }
 
 std::complex<double> ConfigData::U(int nindex, int mu, int c1, int c2){
