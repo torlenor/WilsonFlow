@@ -70,6 +70,7 @@ int Init(int &argc, char *argv[], Options &opt) {
   opt.nt=4;
   opt.meas=false;
   opt.writeconf=false;
+  opt.eps=0.01;
 
   int c;
 

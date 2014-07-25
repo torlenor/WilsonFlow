@@ -37,6 +37,8 @@ class Options {
     bool meas;
     bool writeconf;
 
+    double eps;
+
     std::string filename;
 };
 

@@ -19,6 +19,8 @@
  *
  */
 
+#include <iostream>
+#include <fstream>
 #include <string>
 
 #include "ConfigData.hpp"
@@ -39,7 +41,7 @@ void PrintMatrix(std::complex<double> M[3][3]) {
   }
 }
 
-void CalcStapleSum(std::complex<double> S[3][3], int x, int mu) {
+void CalcStapleSum(std::complex<double> S[3][3], ConfigData *config, int x, int mu) {
   std::complex<double> U1[3][3];
   std::complex<double> U2[3][3];
   std::complex<double> U3[3][3];
@@ -83,6 +85,38 @@ void CalcStapleSum(std::complex<double> S[3][3], int x, int mu) {
   }
 }
 
+std::complex<double> CalcE() {
+  // Calculates the plaquette spatial average over all 6N plaquettes
+  int ispmu, ispnu;
+  std::complex<double> sumplaqs = std::complex<double>(0,0), trace;
+  std::complex<double> u1[3][3], u2[3][3],u3[3][3], u4[3][3], u23[3][3], u234[3][3];
+
+  for(int is = 0;is<opt.ns*opt.ns*opt.ns*opt.nt;is++){
+          for(int imu = 0;imu<4;imu++){
+                  for(int inu = imu+1;inu<4;inu++){
+                          ispmu = config->neib(imu, is);
+                          ispnu = config->neib(inu, is);
+
+                          config->extract(*u1,imu,is);
+                          config->extract(*u2,inu,ispmu);
+                          config->extract(*u3,imu,ispnu);
+                          config->extract(*u4,inu,is);
+
+                          axbdag(u23,u2,u3);
+                          axbdag(u234,u23,u4);
+                          trace=multtrace(u1,u234);
+
+                          sumplaqs = sumplaqs + trace;
+                  }
+          }
+  }
+
+  sumplaqs=sumplaqs/((double)6*3*(double)opt.ns*opt.ns*opt.ns*opt.nt); // factor because sum over N lattice points and md from trace
+  return sumplaqs;
+
+  // return (double)3*opt.ns*opt.ns*opt.ns*opt.nt - sumplaqs;
+}
+
 std::complex<double> CalcPlaq() {
   std::complex<double> U[3][3];
   std::complex<double> S[3][3];
@@ -91,12 +125,153 @@ std::complex<double> CalcPlaq() {
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for (int mu=0; mu<4; mu++) {
       config->extract(*U, mu ,x);
-      CalcStapleSum(S, x, mu);
+      CalcStapleSum(S, config, x, mu);
       plaq += multtrace(U,S);
     }
   }
   
   return plaq/(double)(6*3*opt.ns*opt.ns*opt.ns*opt.nt)/(double)4;
+}
+
+void CopyConfig(ConfigData *configDst, ConfigData *configSrc) {
+  std::complex<double> U[3][3];
+
+  for(int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
+    for(int mu=0; mu<4; mu++) {
+      configSrc->extract(*U, mu, x);
+      configDst->replace(*U, mu, x);
+    }
+  }
+
+}
+
+void SmallFlowStep() {
+  // Here we have to implement the RK scheme from 1006.4518 [hep-lat]
+  // Appendix C
+  // W_0 = V_t
+  // W_1 = exp(1/4 Z_0) W_0
+  // W_2 = exp(8/9 Z_1 - 17/26 Z_0) W_1
+  // W_t+eps = exp(3/4 Z_2 - 8/9 Z_1 + 17/36 Z_0) W_2
+  //
+  // Z_i = eps Z(W_i)
+  
+  std::complex<double> U[3][3];
+  std::complex<double> S[3][3];
+  std::complex<double> US[3][3];
+  std::complex<double> A[3][3];
+  std::complex<double> A2[3][3];
+  std::complex<double> expA[3][3];
+  std::complex<double> newU[3][3];
+
+  // We allocate a new ConfigData
+  ConfigData *W0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  // W_0 = V_t : W0 = config;
+  CopyConfig(W0, config);
+  
+  ConfigData *W1 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  // W_1 = exp(1/4 Z_0) W_0
+  // Multiplicate every link U_x,mu in W0 with 
+  // exp(1/4 eps * U_x,mu*S_x,mu) where S_x,mu is the sum of staples around U_x,mu
+  // and save it in W1.
+  for(int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
+    for(int mu=0; mu<4; mu++) {
+      // For link U_x,mu
+      W0->extract(*U, mu, x);
+      CalcStapleSum(S, W0, x, mu);
+      axb(US, U, S);
+      projA(A,US);
+      za(A,1.0/4.0*opt.eps,A);
+      expM(expA, A);
+      axb(newU, expA, U);
+      if (testUnitarity(newU) > 1e-5) {
+        std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
+      }
+      W1->replace(*newU, mu, x);
+    }
+  }
+  
+  ConfigData *W2 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  // W_2 = exp(8/9 Z_1 - 17/26 Z_0) W_1
+  // Multiplicate every link U_x,mu in W_1 (config1) with 
+  // exp(8/9 eps * V_x,mu*T_x,mu - 17/36 * U_x,mu*S_x,mu ) where T_x,mu \in W_1 and
+  // S_x,mu \in W_0 and save it in W_2 (config2).
+  for(int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
+    for(int mu=0; mu<4; mu++) {
+      // For link U_x,mu
+      
+      // First part with Z0
+      W0->extract(*U, mu, x);
+      CalcStapleSum(S, W0, x, mu);
+      axb(US, U, S);
+      projA(A,US);
+      za(A,-17.0/36.0*opt.eps,A);
+
+      // Add second part with Z1
+      W1->extract(*U, mu, x);
+      CalcStapleSum(S, W1, x, mu);
+      axb(US, U, S);
+      projA(A2,US);
+      za(A2,8.0/9.0*opt.eps,A2);
+
+      // Add both parts
+      apb(A,A2);
+
+      expM(expA, A);
+      axb(newU, expA, U);
+      if (testUnitarity(newU) > 1e-5) {
+        std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
+      }
+      W2->replace(*newU, mu, x);
+    }
+  }
+
+  ConfigData *Wtpeps = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  // W_2 = exp(8/9 Z_1 - 17/26 Z_0) W_1
+  // Multiplicate every link U_x,mu in W_1 (config1) with 
+  // exp(8/9 eps * V_x,mu*T_x,mu - 17/36 * U_x,mu*S_x,mu ) where T_x,mu \in W_1 and
+  // S_x,mu \in W_0 and save it in W_2 (config2).
+  for(int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
+    for(int mu=0; mu<4; mu++) {
+      // For link U_x,mu
+      
+      // First part with Z0
+      W0->extract(*U, mu, x);
+      CalcStapleSum(S, W0, x, mu);
+      axb(US, U, S);
+      projA(A,US);
+      za(A,17.0/36.0*opt.eps,A);
+
+      // Add second part with Z1
+      W1->extract(*U, mu, x);
+      CalcStapleSum(S, W1, x, mu);
+      axb(US, U, S);
+      projA(A2,US);
+      za(A2,-8.0/9.0*opt.eps,A2);
+      
+      // Add both parts
+      apb(A,A2);
+      
+      // Add third part with Z2
+      W2->extract(*U, mu, x);
+      CalcStapleSum(S, W1, x, mu);
+      axb(US, U, S);
+      projA(A2,US);
+      za(A2,3.0/4.0*opt.eps,A2);
+      
+      // Add both parts
+      apb(A,A2);
+
+      expM(expA, A);
+      axb(newU, expA, U);
+      if (testUnitarity(newU) > 1e-5) {
+        std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
+      }
+      Wtpeps->replace(*newU, mu, x);
+    }
+  }
+
+  CopyConfig(config, Wtpeps);
+  
 }
 
 int main(int argc, char *argv[]) {
@@ -123,7 +298,7 @@ int main(int argc, char *argv[]) {
 
   std::complex<double> S[3][3] = {I,2,I,I,1,2,1,I,2};
   int x=10, mu=0;
-  CalcStapleSum(S, x, mu);
+  CalcStapleSum(S, config, x, mu);
 
   PrintMatrix(S);
   std::cout << testAntiHerm(S) << std::endl;
@@ -142,4 +317,15 @@ int main(int argc, char *argv[]) {
   std::cout << testUnitarity(U) << std::endl;
   std::cout << std::endl;
 
+  std::ofstream file;
+  file.open("plaq.data");
+
+  std::complex<double> E;
+  for(double t=0; t<4; t+=opt.eps) {
+    SmallFlowStep();
+    plaq = CalcPlaq();
+    E = CalcE();
+    std::cout << t << " " << plaq << std::endl;
+    file << t << " " << std::real(plaq) << " " << std::real(E) << std::endl;
+  }
 }
