@@ -111,10 +111,8 @@ std::complex<double> CalcE() {
           }
   }
 
-  sumplaqs=sumplaqs/((double)6*3*(double)opt.ns*opt.ns*opt.ns*opt.nt); // factor because sum over N lattice points and md from trace
+  sumplaqs=sumplaqs/(double)(6*3*opt.ns*opt.ns*opt.ns*opt.nt); // factor because sum over N lattice points and md from trace
   return sumplaqs;
-
-  // return (double)3*opt.ns*opt.ns*opt.ns*opt.nt - sumplaqs;
 }
 
 std::complex<double> CalcPlaq() {
@@ -144,6 +142,7 @@ void CopyConfig(ConfigData *configDst, ConfigData *configSrc) {
   }
 
 }
+  
 
 void SmallFlowStep() {
   // Here we have to implement the RK scheme from 1006.4518 [hep-lat]
@@ -164,15 +163,15 @@ void SmallFlowStep() {
   std::complex<double> newU[3][3];
 
   // We allocate a new ConfigData
-  ConfigData *W0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   // W_0 = V_t : W0 = config;
+  ConfigData *W0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   CopyConfig(W0, config);
   
-  ConfigData *W1 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   // W_1 = exp(1/4 Z_0) W_0
   // Multiplicate every link U_x,mu in W0 with 
   // exp(1/4 eps * U_x,mu*S_x,mu) where S_x,mu is the sum of staples around U_x,mu
   // and save it in W1.
+  ConfigData *W1 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   for(int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for(int mu=0; mu<4; mu++) {
       // For link U_x,mu
@@ -190,11 +189,11 @@ void SmallFlowStep() {
     }
   }
   
-  ConfigData *W2 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   // W_2 = exp(8/9 Z_1 - 17/26 Z_0) W_1
   // Multiplicate every link U_x,mu in W_1 (config1) with 
   // exp(8/9 eps * V_x,mu*T_x,mu - 17/36 * U_x,mu*S_x,mu ) where T_x,mu \in W_1 and
   // S_x,mu \in W_0 and save it in W_2 (config2).
+  ConfigData *W2 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   for(int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for(int mu=0; mu<4; mu++) {
       // For link U_x,mu
@@ -225,11 +224,11 @@ void SmallFlowStep() {
     }
   }
 
-  ConfigData *Wtpeps = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   // W_2 = exp(8/9 Z_1 - 17/26 Z_0) W_1
   // Multiplicate every link U_x,mu in W_1 (config1) with 
   // exp(8/9 eps * V_x,mu*T_x,mu - 17/36 * U_x,mu*S_x,mu ) where T_x,mu \in W_1 and
   // S_x,mu \in W_0 and save it in W_2 (config2).
+  ConfigData *Wtpeps = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   for(int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for(int mu=0; mu<4; mu++) {
       // For link U_x,mu
@@ -283,7 +282,8 @@ int main(int argc, char *argv[]) {
 
   // Read the config given on command line
   config = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
-  int ret=config->MILCreadConfig(opt.filename);
+  int ret=config->readBinaryConfig2(opt.filename);
+  // int ret=config->MILCreadConfig(opt.filename);
   if (ret!=0) {
     std::cout << "ERROR: Reading MILC config file!" << std::endl;
     return 1;
