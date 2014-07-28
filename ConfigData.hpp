@@ -869,7 +869,7 @@ std::complex<double> ConfigData::calcPlaq(){
                 }
         }
 
-        sumplaqs=sumplaqs/((double)6*matrixdim*(double)nsite); // factor because sum over N lattice       points and md from trace
+        sumplaqs=sumplaqs/((double)6*matrixdim*(double)nsite); // factor because sum over N lattice points and md from trace
 
         return sumplaqs;
 }
