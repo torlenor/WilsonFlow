@@ -38,6 +38,7 @@ class Options {
     bool writeconf;
 
     double eps;
+    double tmax;
 
     std::string filename;
 };

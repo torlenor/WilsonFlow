@@ -29,6 +29,9 @@ void Options::PrintSettings() {
   << "Nt = " << nt << std::endl
   << "Filename = " << filename << std::endl
   << "writeconf = " << writeconf << std::endl
-  << "meas = " << meas << std::endl;
+  << "meas = " << meas << std::endl << std::endl
+  << "Wilson Flow settings:" << std::endl
+  << "Flow step eps = " << eps << std::endl
+  << "Max. flow time t_max = " << tmax << std::endl;
 }
 

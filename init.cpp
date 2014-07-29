@@ -34,6 +34,9 @@ int Init(int &argc, char *argv[], Options &opt) {
       "  -s, --Ns SSIZE     spatial lattice extent (default = 4)\n"
       "  -t, --Nt TSIZE     temporal lattice extent (default = 4)\n"
       "\n"  
+      "  -e, --eps Epsilon  Flow time step\n"
+      "  -f, --ftime t_max  Iterate Flow time until t=t_max\n"
+      "\n"  
       "  -m  --meas         perform basic measurements and write them to file (default on)\n"
       "  -c  --writeconf    writes configurations to disk\n"
       "\n"  
@@ -70,7 +73,8 @@ int Init(int &argc, char *argv[], Options &opt) {
   opt.nt=4;
   opt.meas=false;
   opt.writeconf=false;
-  opt.eps=0.01;
+  opt.eps=0.02;
+  opt.tmax=2.00;
 
   int c;
 
@@ -81,6 +85,8 @@ int Init(int &argc, char *argv[], Options &opt) {
 		  We distinguish them by their indices. */
 		  {"Ns", required_argument, 0, 's'},
 		  {"Nt", required_argument, 0, 't'},
+		  {"eps", required_argument, 0, 'e'},
+		  {"ftime", required_argument, 0, 'f'},
 		  /* These options set a flag. */
 		  {"meas", no_argument, 0, 'm'},
 		  {"writeconf", no_argument, 0, 'c'},
@@ -92,7 +98,7 @@ int Init(int &argc, char *argv[], Options &opt) {
 	  /* getopt_long stores the option index here. */
 	  int option_index = 0;
 
-	  c = getopt_long (argc, argv, "s:t:mchv",
+	  c = getopt_long (argc, argv, "s:t:e:f:mchv",
 	  long_options, &option_index);
 
 	  /* Detect the end of the options. */
@@ -117,6 +123,14 @@ int Init(int &argc, char *argv[], Options &opt) {
 
 		  case 't':
 		    opt.nt = std::atoi(optarg);
+			  break;
+		  
+      case 'e':
+		    opt.eps = std::atof(optarg);
+			  break;
+
+		  case 'f':
+		    opt.tmax = std::atof(optarg);
 			  break;
 			  
       case 'm':
