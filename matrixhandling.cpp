@@ -115,6 +115,7 @@ void adag(std::complex<double> a[d3][d3]){
 void expM(std::complex<double> U[3][3], std::complex<double> A[3][3]) {
   // U = exp(A)
   // U = 1 + sum_i 1/i! * A^i
+  const int nmax=20;
   
   std::complex<double> Atmp1[3][3];
   std::complex<double> Atmp2[3][3];
@@ -132,7 +133,7 @@ void expM(std::complex<double> U[3][3], std::complex<double> A[3][3]) {
 
   double fact=1;
 
-  for (int i=1; i<50; i++) {
+  for (int i=1; i<nmax; i++) {
     fact *= i;
     axb(Atmp2,Atmp1,A);
     aeb(Atmp1,Atmp2);

@@ -293,7 +293,7 @@ int ConfigData::readBinaryConfig(std::string fconfigname){
         std::complex<double> plaq=calcPlaq();
 
 	if(verbose){
-		std::cout << "Configfile " << fconfigname << " (binary) read." << std::endl << std::endl;
+		std::cout << "Configfile " << fconfigname << " read (old binary format)." << std::endl << std::endl;
 		std::cout << "Checks:" << std::endl;
 		std::cout << "Polyakov loop: calculated=" << poll << std::endl;
 		std::cout << "Plaquettes: calculated=" << plaq << std::endl << std::endl;
@@ -455,7 +455,7 @@ int ConfigData::readBinaryConfig2(std::string fconfigname){
 		plaq=calcPlaq();
 
 		if(verbose){
-		std::cout << "Configfile " << fconfigname << " read." << std::endl << std::endl;
+		std::cout << "Configfile " << fconfigname << " read (new binary format)." << std::endl << std::endl;
 		std::cout << "Checks:" << std::endl;
 		std::cout << "Polyakov loop: file=" << pollref << " calculated=" << poll << " diff(abs)=" << abs(pollref-poll) << std::endl;
 		std::cout << "Plaquettes: file=" << plaqref << " calculated=" << plaq << " diff(abs)=" << abs(plaqref-plaq) << std::endl << std::endl;
@@ -523,7 +523,7 @@ int ConfigData::readConfig(std::string fconfigname){
 	plaq=calcPlaq();
 
 	if(verbose){
-	std::cout << "Configfile " << fconfigname << " read." << std::endl << std::endl;
+	std::cout << "Configfile " << fconfigname << " read (text format)." << std::endl << std::endl;
 	std::cout << "Checks:" << std::endl;
 	std::cout << "Polyakov loop: file=" << pollref << " calculated=" << poll << " diff(abs)=" << abs(pollref-poll) << std::endl;
 	std::cout << "Plaquettes: file=" << plaqref << " calculated=" << plaq << " diff(abs)=" << abs(plaqref-plaq) << std::endl << std::endl;
@@ -576,7 +576,7 @@ int ConfigData::readFConfig(std::string fconfigname){
 	plaq=calcPlaq();
 
 	if(verbose){
-	std::cout << "Configfile " << fconfigname << " read." << std::endl << std::endl;
+	std::cout << "Configfile " << fconfigname << " read (Fortran format)." << std::endl << std::endl;
 	std::cout << "Checks:" << std::endl;
 	std::cout << "Polyakov loop: file=" << pollref << " calculated=" << poll << " diff(abs)=" << abs(pollref-poll) << std::endl;
 	std::cout << "Plaquettes: file=" << plaqref << " calculated=" << plaq << " diff(abs)=" << abs(plaqref-plaq) << std::endl << std::endl;
@@ -703,7 +703,7 @@ int ConfigData::MILCreadConfig(std::string fconfigname){
 	double absplaqerr=abs(real(plaqref)-real(plaq));
 
 	if(verbose){
-		std::cout << "Configfile " << fconfigname << " read." << std::endl << std::endl;
+		std::cout << "Configfile " << fconfigname << " read (MILC format)." << std::endl << std::endl;
 		std::cout << "Checks (note, MILC output only single precision):" << std::endl;
 		std::cout << "Polyakov loop: file=" << pollref << " calculated=" << poll << " diff(abs)=" << abspollerr << std::endl;
 		std::cout << "Plaquettes: file=" << real(plaqref) << " calculated=" << real(plaq) << " diff(abs)=" << absplaqerr << std::endl << std::endl;

@@ -169,5 +169,21 @@ int Init(int &argc, char *argv[], Options &opt) {
     exit(1);
   }
 
+  if (argc>optind+1) {
+    if (argv[optind+1][0]=='b') {
+      opt.type=0; // Binary2 (new format)
+    }else if(argv[optind+1][0]=='a'){
+      opt.type=1; // MILC
+    }else if(argv[optind+1][0]=='f'){
+      opt.type=2; // Fortran
+    }else{
+      std::cout << std::endl << "ERROR: Requested TYPE not understood!" << std::endl;
+      std::cout << std::endl << texthelp << std::endl;
+      return 1;
+    }   
+  }else{ // default is setting type to binary2
+    opt.type=0;
+  }
+
   return 0;
 }

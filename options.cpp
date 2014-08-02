@@ -27,8 +27,24 @@ void Options::PrintSettings() {
   std::cout << "Settings:" << std::endl
   << "Ns = " << ns << std::endl
   << "Nt = " << nt << std::endl
-  << "Filename = " << filename << std::endl
-  << "writeconf = " << writeconf << std::endl
+  << "Filename = " << filename << std::endl;
+  switch (type) {
+    case 0:
+      std::cout << "Storage format: binary (new)" << std::endl;
+      break;
+
+    case 1:
+      std::cout << "Storage format: MILC text" << std::endl;
+      break;
+
+    case 2:
+      std::cout << "Storage format: Fortran" << std::endl;
+      break;
+
+    default:
+      std::cout << "Storage format: ERROR!!!" << std::endl;
+  } 
+  std:: cout<< "writeconf = " << writeconf << std::endl
   << "meas = " << meas << std::endl << std::endl
   << "Wilson Flow settings:" << std::endl
   << "Flow step eps = " << eps << std::endl

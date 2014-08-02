@@ -41,6 +41,7 @@ class Options {
     double tmax;
 
     std::string filename;
+    int type;
 };
 
 

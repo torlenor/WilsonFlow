@@ -226,6 +226,7 @@ void SmallFlowStep(ConfigData *config) {
   // We allocate a new ConfigData
   // W_0 = V_t : W0 = config;
   ConfigData *W0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  ConfigData *S0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   CopyConfig(W0, config);
   
   // W_1 = exp(1/4 Z_0) W_0
@@ -234,6 +235,7 @@ void SmallFlowStep(ConfigData *config) {
     for (int mu=0; mu<4; mu++) {
       // For link U_x,mu
       CalcZ(Z0, W0, x, mu);
+      S0->replace(*Z0, x, mu); // save this into ConfigData for Z0s
       za(A, 1.0/4.0*opt.eps, Z0);
 
       expM(expA, A);
@@ -250,14 +252,17 @@ void SmallFlowStep(ConfigData *config) {
   
   // W_2 = exp(8/9 Z_1 - 17/36 Z_0) W_1
   ConfigData *W2 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  ConfigData *S1 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for (int mu=0; mu<4; mu++) {
       // First part with Z0
-      CalcZ(Z0, W0, x, mu);
+      // CalcZ(Z0, W0, x, mu);
+      S0->extract(*Z0, x, mu); // save this into ConfigData for Z0s
       za(A, -17.0/36.0*opt.eps, Z0);
 
       // Add second part with Z1
       CalcZ(Z1, W1, x, mu);
+      S1->replace(*Z1, x, mu); // save this into ConfigData for Z0s
       za(A2, 8.0/9.0*opt.eps, Z1);
 
       // Add both parts
@@ -282,11 +287,13 @@ void SmallFlowStep(ConfigData *config) {
       // For link U_x,mu
       
       // First part with Z0
-      CalcZ(Z0, W0, x, mu);
+      // CalcZ(Z0, W0, x, mu);
+      S0->extract(*Z0, x, mu); // load Z0
       za(A, 17.0/36.0*opt.eps, Z0);
 
       // Add second part with Z1
-      CalcZ(Z1, W1, x, mu);
+      // CalcZ(Z1, W1, x, mu);
+      S1->extract(*Z1, x, mu); // load Z1
       za(A2, -8.0/9.0*opt.eps, Z1);
       
       // Add both parts
@@ -318,6 +325,8 @@ void SmallFlowStep(ConfigData *config) {
   delete W0; W0 = 0;
   delete W1; W1 = 0;
   delete W2; W2 = 0;
+  delete S0; S0 = 0;
+  delete S1; S1 = 0;
   delete Wtpeps; Wtpeps = 0;
 }
 
@@ -333,18 +342,44 @@ int main(int argc, char *argv[]) {
   ConfigData *config;
 
   // Read the config given on command line
-  config = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
-  int ret=config->readBinaryConfig2(opt.filename);
-  if (ret!=0) {
-    std::cout << "ERROR: Reading binary config file!" << std::endl;
-    return 1;
-  }
-
-  // int ret=config->MILCreadConfig(opt.filename);
+  // int ret=config->readBinaryConfig2(opt.filename);
   // if (ret!=0) {
-  //   std::cout << "ERROR: Reading MILC config file!" << std::endl;
+  //   std::cout << "ERROR: Reading binary config file!" << std::endl;
   //   return 1;
   // }
+
+
+  int ret;
+  config = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  switch (opt.type) {
+    case 0:
+      ret=config->readBinaryConfig2(opt.filename);
+      if(ret!=0){
+        std::cout << "ERROR: Reading binary config file (new storage format)!" << std::endl;
+        return 1;
+      }   
+      break;
+
+    case 1:
+      ret=config->MILCreadConfig(opt.filename);
+      if(ret!=0){
+        std::cout << "ERROR: Reading MILC config file!" << std::endl;
+        return 1;
+      }   
+      break;
+
+    case 2:
+      ret=config->readFConfig(opt.filename);
+      if(ret!=0){
+        std::cout << "ERROR: Reading Fortran config file!" << std::endl;
+        return 1;
+      }
+      break;
+
+    default:
+      std::cout << "ERROR: Requested TYPE not understood!" << std::endl;
+      return 1;
+    }   
   
   // Test of staple sum
   std::complex<double> plaq;
@@ -360,7 +395,8 @@ int main(int argc, char *argv[]) {
   std::complex<double> E, poll;
 
   // Step t=0
-  E = CalcE(config);
+  // E = CalcE(config);
+  E = 1.0 - plaq;
   poll = CalcPoll(config);
   std::cout << 0 << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
   file << 0 << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
@@ -370,7 +406,8 @@ int main(int argc, char *argv[]) {
     tstart = gettime();
     SmallFlowStep(config);
     plaq = CalcPlaq(config);
-    E = CalcE(config);
+    // E = CalcE(config);
+    E = 1.0 - plaq;
     poll = CalcPoll(config);
     std::cout << t+opt.eps << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
     file << t+opt.eps << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
