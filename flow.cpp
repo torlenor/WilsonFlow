@@ -29,6 +29,7 @@
 #include "matrixhandling.h"
 #include "measuretime.h"
 #include "options.h"
+#include "su3.h"
 
 Options opt;
 
@@ -58,11 +59,11 @@ std::complex<double> CalcPoll(ConfigData *config) {
         i4 = 0;
         is0 = i1 + i2*opt.ns + i3*opt.ns*opt.ns + i4*opt.ns*opt.ns*opt.ns;
 
-        config->extract(*up, 3, is0);
+        config->extract(*up, is0, 3);
 
         for (i4=1; i4<opt.nt-1; i4++) {
           is0 = i1 + i2*opt.ns + i3*opt.ns*opt.ns + i4*opt.ns*opt.ns*opt.ns;
-          config->extract(*uu, 3, is0);
+          config->extract(*uu, is0, 3);
           axb(upaux, up, uu);
           aeb(up, upaux);
         }
@@ -70,7 +71,7 @@ std::complex<double> CalcPoll(ConfigData *config) {
         i4 = opt.nt-1;
         is0 = i1 + i2*opt.ns + i3*opt.ns*opt.ns + i4*opt.ns*opt.ns*opt.ns;
 
-        config->extract(*uu, 3, is0);
+        config->extract(*uu, is0, 3);
         trace=multtrace(up, uu);
 
         poll += trace;
@@ -104,9 +105,9 @@ void CalcStapleSum(std::complex<double> S[3][3], ConfigData *config, int x, int 
       // Upper part of staple
       int xpnu = config->neib(x,nu);
 
-      config->extract(*U1, nu, x); // U_x,nu
-      config->extract(*U2, mu, xpnu); // U_x+nu,mu
-      config->extract(*U3, nu, xpmu);
+      config->extract(*U1, x, nu); // U_x,nu
+      config->extract(*U2, xpnu, mu); // U_x+nu,mu
+      config->extract(*U3, xpmu, nu);
 
       adagxbdag(U21, U2, U1);
       axb(U321, U3, U21);
@@ -116,9 +117,9 @@ void CalcStapleSum(std::complex<double> S[3][3], ConfigData *config, int x, int 
       int xmnu = config->neib(x,nu+4);
       int xmnupmu = config->neib(xmnu,mu);
 
-      config->extract(*U1, nu, xmnu); // U_x-nu,nu
-      config->extract(*U2, mu, xmnu); // U_x-nu,mu
-      config->extract(*U3, nu, xmnupmu); // U_x-nu+mu,nu
+      config->extract(*U1, xmnu, nu); // U_x-nu,nu
+      config->extract(*U2, xmnu, mu); // U_x-nu,mu
+      config->extract(*U3, xmnupmu, nu); // U_x-nu+mu,nu
 
       adagxb(U21, U2, U1);
       adagxb(U321, U3, U21);
@@ -139,10 +140,10 @@ std::complex<double> CalcE(ConfigData *config) {
         ispmu = config->neib(is, imu);
         ispnu = config->neib(is, inu);
 
-        config->extract(*u1, imu, is);
-        config->extract(*u2, inu, ispmu);
-        config->extract(*u3, imu, ispnu);
-        config->extract(*u4, inu, is);
+        config->extract(*u1, is, imu);
+        config->extract(*u2, ispmu, inu);
+        config->extract(*u3, ispnu, imu);
+        config->extract(*u4, is, inu);
 
         axbdag(u23, u2, u3);
         axbdag(u234, u23, u4);
@@ -164,7 +165,7 @@ std::complex<double> CalcPlaq(ConfigData *config) {
 
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for (int mu=0; mu<4; mu++) {
-      config->extract(*U, mu ,x);
+      config->extract(*U, x, mu);
       CalcStapleSum(S, config, x, mu);
       plaq += multtrace(U,S);
     }
@@ -179,8 +180,8 @@ void CopyConfig(ConfigData *configDst, ConfigData *configSrc) {
 
   for(int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for(int mu=0; mu<4; mu++) {
-      configSrc->extract(*U, mu, x);
-      configDst->replace(*U, mu, x);
+      configSrc->extract(*U, x, mu);
+      configDst->replace(*U, x, mu);
     }
   }
 }
@@ -190,7 +191,7 @@ void CalcZ(std::complex<double> Z[3][3], ConfigData *W, int x, int mu) {
   std::complex<double> S[3][3];
   std::complex<double> US[3][3];
 
-  W->extract(*U, mu, x);
+  W->extract(*U, x, mu);
   CalcStapleSum(S, W, x, mu);
   axb(US, U, S);
   projA(Z,US);
@@ -236,14 +237,14 @@ void SmallFlowStep(ConfigData *config) {
       za(A, 1.0/4.0*opt.eps, Z0);
 
       expM(expA, A);
-      W0->extract(*U, mu, x);
+      W0->extract(*U, x, mu);
       axb(newU, expA, U);
 
       if (testUnitarity(newU) > 1e-5) {
         std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
       }
 
-      W1->replace(*newU, mu, x);
+      W1->replace(*newU, x, mu);
     }
   }
   
@@ -263,14 +264,14 @@ void SmallFlowStep(ConfigData *config) {
       apb(A,A2);
 
       expM(expA, A);
-      W1->extract(*U, mu, x);
+      W1->extract(*U, x, mu);
       axb(newU, expA, U);
 
       if (testUnitarity(newU) > 1e-5) {
         std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
       }
 
-      W2->replace(*newU, mu, x);
+      W2->replace(*newU, x, mu);
     }
   }
 
@@ -299,14 +300,14 @@ void SmallFlowStep(ConfigData *config) {
       apb(A,A2);
 
       expM(expA, A);
-      W2->extract(*U, mu, x);
+      W2->extract(*U, x, mu);
       axb(newU, expA, U);
 
       if (testUnitarity(newU) > 1e-5) {
         std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
       }
 
-      Wtpeps->replace(*newU, mu, x);
+      Wtpeps->replace(*newU, x, mu);
     }
   }
 

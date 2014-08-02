@@ -4,11 +4,11 @@ project( FLOW_PROJECT ) # this is case sensitive
 
 ######################################
 
-SET(CODE_FILES  flow.cpp init.cpp options.cpp matrixhandling.cpp)
+SET(CODE_FILES  flow.cpp init.cpp options.cpp matrixhandling.cpp su3.cpp)
 
 set(CMAKE_BUILD_TYPE Release)
 
-SET(GCC_ADDITIONAL_COMPILE_FLAGS  "-O2 -Wall -std=c++11")
+SET(GCC_ADDITIONAL_COMPILE_FLAGS  "-O2 -Wall -std=c++11 -DDEBUG")
 SET(GCC_ADDITIONAL_LINK_FLAGS     "")
 SET(GCC_ADDITIONAL_LIBRARIES      "")
 

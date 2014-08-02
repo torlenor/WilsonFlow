@@ -24,11 +24,11 @@ class ConfigData{
 		~ConfigData();
 		
 		// Interfaces
-		void extract(std::complex<double> *m, int mu, int nindex); // Returns the matrix @ (nindex,mu)
-		void replace(std::complex<double> *m, int mu, int nindex); // Replaces the matrix @ (nindex,mu)
+    void extract(std::complex<double> *m, int nindex, int mu);  // Returns the matrix @ (nindex,mu)
+    void replace(std::complex<double> *m, int nindex, int mu); // Replaces the matrix @ (nindex,mu)
 
-		void dumpConfig(); // Dumps the config to stdout
-		void freeConfig(); // Creates a free config (diag(1,1,1) matrices on every link)
+    void dumpConfig(); // Dumps the config to stdout
+    void freeConfig(); // Creates a free config (diag(1,1,1) matrices on every link)
 
 		int readConfig(std::string fconfigname); // Reads a config from file
 		int readFConfig(std::string fconfigname); // Fortran config
@@ -184,22 +184,34 @@ std::complex<double> ConfigData::U(int nindex, int mu, int c1, int c2){
 	return (*A)(nindex,mu,c1,c2);
 }
 
-void ConfigData::extract(std::complex<double> *m, int mu,int nindex){
-        // Extracts the matrix at (x,mu) in A and writes it to m
-        for(int i=0;i<matrixdim;i++)
-		for(int j=0;j<matrixdim;j++){
-			m[i*matrixdim + j]=(*A)(nindex,mu,i,j);
-		}
-	
-	// memcpy( m, &(*A)(nindex,mu,0,0), entries*sizeof(std::complex<double>) );
+void ConfigData::extract(std::complex<double> *m, int nindex, int mu) {
+  // Extracts the matrix at (x,mu) in A and writes it to m
+  #ifdef DEBUG
+    if(nindex<0 || nindex>nsite-1 || mu<0 || mu>DIM*2){
+      std::cout << "Error in ConfigData::extract(std::complex<double> *m, int mu, int nindex)" << std::endl;
+      exit(1);
+    }
+  #endif
+  for(int i=0;i<matrixdim;i++)
+  for(int j=0;j<matrixdim;j++){
+    m[i*matrixdim + j]=(*A)(nindex,mu,i,j);
+  }
+
+  // memcpy( m, &(*A)(nindex,mu,0,0), entries*sizeof(std::complex<double>) );
 }
 
-void ConfigData::replace(std::complex<double> *m, int mu, int nindex){
-        // Replaces the matrix at (x,mu) in A with m
-        for(int i=0;i<matrixdim;i++)
-		for(int j=0;j<matrixdim;j++){
-			(*A)(nindex,mu,i,j)=m[i*matrixdim + j];
- 	}
+void ConfigData::replace(std::complex<double> *m, int nindex, int mu) {
+  // Replaces the matrix at (x,mu) in A with m
+  #ifdef DEBUG
+    if(nindex<0 || nindex>nsite-1 || mu<0 || mu>DIM*2){
+      std::cout << "Error in ConfigData::replace(std::complex<double> *m, int mu, int nindex)" << std::endl;
+      exit(1);
+    }
+  #endif
+  for(int i=0;i<matrixdim;i++)
+  for(int j=0;j<matrixdim;j++){
+    (*A)(nindex,mu,i,j)=m[i*matrixdim + j];
+  }
 	
 	// memcpy( &(*A)(nindex,mu,0,0),m, entries*sizeof(std::complex<double>) );
 }
@@ -246,7 +258,7 @@ void ConfigData::dumpConfig(){
 
         for(int n=0;n<nsite;n++){
                 for(int mu=0;mu<DIM;mu++){
-                        extract(*U,mu,n);
+                        extract(*U, n, mu);
                         for(int i=0; i<matrixdim; i++){
                                 for(int j=0; j<matrixdim; j++){
                                         std::cout << real(U[i][j]) << " " << imag(U[i][j]) << " ";
@@ -344,26 +356,26 @@ int ConfigData::writeNERSCConfig(std::string fconfigname){
 
 	// We need the Polyakov loop and plaquette in the file header
 	// so we calculate it.
-	std::complex<double> plaq, poll;
-	poll=calcPoll();
-        plaq=calcPlaq();
+  std::complex<double> plaq, poll;
+  poll=calcPoll();
+  plaq=calcPlaq();
 
-	// We also need the average of the trace of all links.
-        std::complex<double> U[matrixdim][matrixdim];
-	double linktrace=0;
-        for(int n=0;n<nsite;n++){
-                for(int mu=0;mu<DIM;mu++){
-                        extract(*U,mu,n);
-                        for(int i=0; i<matrixdim; i++){
-					linktrace += real(U[i][i]);
-                        }   
-                }   
-        }
-	linktrace=linktrace/(double)(nsite*12.0);
+  // We also need the average of the trace of all links.
+  std::complex<double> U[matrixdim][matrixdim];
+  double linktrace=0;
+  for(int n=0;n<nsite;n++){
+    for(int mu=0;mu<DIM;mu++){
+      extract(*U, n, mu);
+      for(int i=0; i<matrixdim; i++){
+        linktrace += real(U[i][i]);
+      }   
+    }   
+  }
+  linktrace=linktrace/(double)(nsite*12.0);
 
-       	FILE* pFile;
+  FILE* pFile;
 
-       	pFile = fopen(fconfigname.c_str(), "wb");
+  pFile = fopen(fconfigname.c_str(), "wb");
 
 	// HEADER
 	fprintf(pFile, "BEGIN_HEADER\n");
@@ -390,22 +402,22 @@ int ConfigData::writeNERSCConfig(std::string fconfigname){
 	// fprintf(pFile, "FLOATING_POINT=IEEE32BIG\n");
 	fprintf(pFile, "END_HEADER\n");
 	
-	double areal, aimag;
-        for(int n=0;n<nsite;n++){
-                for(int mu=0;mu<DIM;mu++){
-                        extract(*U,mu,n);
-			for(int j=0;j<2;j++)
-			for(int i=0;i<3;i++){
-				areal=real(U[j][i]);
-				aimag=imag(U[j][i]);
-				fwrite(&areal, sizeof(double), 1, pFile);
-				fwrite(&aimag, sizeof(double), 1, pFile);
-			}
-                }   
-        }
+  double areal, aimag;
+  for (int n=0;n<nsite;n++) {
+    for (int mu=0;mu<DIM;mu++) {
+      extract(*U, n, mu);
+      for (int j=0;j<2;j++)
+      for (int i=0;i<3;i++) {
+        areal=real(U[j][i]);
+        aimag=imag(U[j][i]);
+        fwrite(&areal, sizeof(double), 1, pFile);
+        fwrite(&aimag, sizeof(double), 1, pFile);
+      }
+    }   
+  }
 
-       	fclose(pFile);
-	return 0;
+  fclose(pFile);
+  return 0;
 }
 
 int ConfigData::readBinaryConfig2(std::string fconfigname){
@@ -417,20 +429,20 @@ int ConfigData::readBinaryConfig2(std::string fconfigname){
 	
 	double maxError=1E-10;
         
-	FILE* pFile;
-        pFile = fopen(fconfigname.c_str(), "rb");
-   	if (pFile == NULL) perror ("Error opening file");
-	else{
-		elems += fread(&cleng1, sizeof(int), 1, pFile);
-		elems += fread(&cleng2, sizeof(int), 1, pFile);
-		elems += fread(&cleng3, sizeof(int), 1, pFile);
-		elems += fread(&cleng4, sizeof(int), 1, pFile);
-		
-		// Check lattice dimensions
-		if(leng1!=cleng1 || leng2!=cleng2 || leng3!=cleng3 || leng4!=cleng4){
-			std::cout << "ERROR: lattice dimensions are different in config file and settings !" << std::endl;
-			return 1;
-		}
+  FILE* pFile;
+  pFile = fopen(fconfigname.c_str(), "rb");
+  if (pFile == NULL) perror ("Error opening file");
+  else {
+    elems += fread(&cleng1, sizeof(int), 1, pFile);
+    elems += fread(&cleng2, sizeof(int), 1, pFile);
+    elems += fread(&cleng3, sizeof(int), 1, pFile);
+    elems += fread(&cleng4, sizeof(int), 1, pFile);
+
+    // Check lattice dimensions
+    if (leng1!=cleng1 || leng2!=cleng2 || leng3!=cleng3 || leng4!=cleng4) {
+      std::cout << "ERROR: lattice dimensions are different in config file and settings !" << std::endl;
+      return 1;
+    }
 		
 		elems += fread(&pollref, sizeof(std::complex<double>),1, pFile);
 		elems += fread(&plaqref, sizeof(std::complex<double>),1, pFile);
@@ -498,7 +510,7 @@ int ConfigData::readConfig(std::string fconfigname){
 					U[i][j]=std::complex<double>(realnum,imagnum);
                                 }
                         }
-			replace(*U,mu,n);
+			replace(*U, n, mu);
                 }
         }
         
@@ -555,7 +567,7 @@ int ConfigData::readFConfig(std::string fconfigname){
 					U[i][j]=std::complex<double>(realnum,imagnum);
                                 }
                         }
-			replace(*U,mu,n);
+			replace(*U, n, mu);
                 }
         }
         
@@ -603,7 +615,7 @@ int ConfigData::writeConfig(std::string fconfigname){
     
         for(int n=0;n<nsite;n++){
                 for(int mu=0;mu<DIM;mu++){
-                        extract(*U,mu,n);
+                        extract(*U, n, mu);
                         for(int i=0; i<matrixdim; i++){
                                 for(int j=0; j<matrixdim; j++){
                                         fconfig << real(U[i][j]) << " " << imag(U[i][j]) << " ";
@@ -671,7 +683,7 @@ int ConfigData::MILCreadConfig(std::string fconfigname){
 					U[i][j]=std::complex<double>(realnum,imagnum);
                                 }
                         }
-			replace(*U,mu,n);
+			replace(*U, n, mu);
                 }
         }
 
@@ -777,9 +789,9 @@ void ConfigData::staplesum(std::complex<double> *S, int mu,int x){
         for(int nu=0;nu<DIM;nu++){
                 if(mu != nu){
                         xpnu=neibArray[x][nu];
-                        extract(*U1,nu,xpmu);
-                        extract(*U2,mu,xpnu);
-                        extract(*U3,nu,x);
+                        extract(*U1, xpmu, nu);
+                        extract(*U2, xpnu, mu);
+                        extract(*U3, x, nu);
 
                         axbdag(*U12,*U1,*U2);
                         axbdag(*U123,*U12,*U3);
@@ -789,9 +801,9 @@ void ConfigData::staplesum(std::complex<double> *S, int mu,int x){
                         xmnu = neibArray[x][4+nu];
                         xmnupmu=neibArray[xmnu][mu];
 
-                        extract(*U1,nu,xmnupmu);
-                        extract(*U2,mu,xmnu);
-                        extract(*U3,nu,xmnu);
+                        extract(*U1, xmnupmu, nu);
+                        extract(*U2, xmnu, mu);
+                        extract(*U3, xmnu, nu);
     
                         adagxbdag(*U12,*U1,*U2);
                         axb(*U123,*U12,*U3);
@@ -818,11 +830,11 @@ std::complex<double> ConfigData::calcPoll(){
                                 i4 = 0;
                                 is0 = i1 + i2*leng1 + i3*leng1*leng2 + i4*leng1*leng2*leng3;
 
-                                extract(*up,3,is0);
+                                extract(*up, is0, 3);
 
                                 for(i4=1;i4<leng4-1;i4++){
                                         is0 = i1 + i2*leng1 + i3*leng1*leng2 + i4*leng1*leng2*leng3;
-                                        extract(*uu,3,is0);
+                                        extract(*uu, is0, 3);
                                         axb(*upaux,*up,*uu);
                                         aeb(*up,*upaux);
                                 }   
@@ -830,7 +842,7 @@ std::complex<double> ConfigData::calcPoll(){
                                 i4 = leng4-1;
                                 is0 = i1 + i2*leng1 + i3*leng1*leng2 + i4*leng1*leng2*leng3;
 
-                                extract(*uu,3,is0);
+                                extract(*uu, is0, 3);
                                 trace=multtrace(*up,*uu);
 
                                 poll = poll + trace;
@@ -855,10 +867,10 @@ std::complex<double> ConfigData::calcPlaq(){
                                 ispmu = neibArray[is][imu];
                                 ispnu = neibArray[is][inu];
 
-                                extract(*u1,imu,is);
-                                extract(*u2,inu,ispmu);
-                                extract(*u3,imu,ispnu);
-                                extract(*u4,inu,is);
+                                extract(*u1, is, imu);
+                                extract(*u2, ispmu, inu);
+                                extract(*u3, ispnu, imu);
+                                extract(*u4, is, inu);
 
                                 axbdag(*u23,*u2,*u3);
                                 axbdag(*u234,*u23,*u4);
@@ -880,11 +892,11 @@ void ConfigData::calcLocalPoll(std::complex<double> *lpoll, int i1, int i2, int 
 	int i4=0, is0=0;
         is0 = i1 + i2*leng1 + i3*leng1*leng2 + i4*leng1*leng2*leng3;
 
-        extract(*up,3,is0);
+        extract(*up, is0, 3);
 
         for(i4=1;i4<leng4-1;i4++){
                 is0 = i1 + i2*leng1 + i3*leng1*leng2 + i4*leng1*leng2*leng3;
-                extract(*uu,3,is0);
+                extract(*uu, is0, 3);
                 axb(*upaux,*up,*uu);
                 aeb(*up,*upaux);
 	}    
@@ -892,7 +904,7 @@ void ConfigData::calcLocalPoll(std::complex<double> *lpoll, int i1, int i2, int 
         i4 = leng4-1;
         is0 = i1 + i2*leng1 + i3*leng1*leng2 + i4*leng1*leng2*leng3;
 
-        extract(*uu,3,is0);
+        extract(*uu, is0, 3);
 	axb(lpoll,*up,*uu);
 	
 	sum += lpoll[0*3 + 0] + lpoll[1*3 + 1] + lpoll[2*3 + 2];
@@ -929,12 +941,12 @@ void ConfigData::z3rot(){
                                         std::cout << "Loop 1st volume" << std::endl;
                                         std::cout << "i1=" << i1 << " i2=" << i2 << " i3=" << i3 << " i4=" << i4 << std::endl;
                                 }
-				extract(*uu,0,is);
+				extract(*uu, is, 0);
 				for(int i=0;i<matrixdim;i++)
  			       	for(int j=0;j<matrixdim;j++){
                 			uu[i][j]=phase*uu[i][j];
         			}
-				replace(*uu,0,is);
+				replace(*uu, is, 0);
 			}
 		}
 	}
@@ -960,12 +972,12 @@ void ConfigData::z3rot(){
                                         std::cout << "Loop 1st volume" << std::endl;
                                         std::cout << "i1=" << i1 << " i2=" << i2 << " i3=" << i3 << " i4=" << i4 << std::endl;
                                 }
-				extract(*uu,1,is);
+				extract(*uu, is, 1);
 				for(int i=0;i<matrixdim;i++)
  			       	for(int j=0;j<matrixdim;j++){
                 			uu[i][j]=phase*uu[i][j];
         			}
-				replace(*uu,1,is);
+				replace(*uu, is, 1);
 			}
 		}
 	}
@@ -991,12 +1003,12 @@ void ConfigData::z3rot(){
                                         std::cout << "Loop 1st volume" << std::endl;
                                         std::cout << "i1=" << i1 << " i2=" << i2 << " i3=" << i3 << " i4=" << i4 << std::endl;
                                 }
-				extract(*uu,2,is);
+				extract(*uu, is, 2);
 				for(int i=0;i<matrixdim;i++)
  			       	for(int j=0;j<matrixdim;j++){
                 			uu[i][j]=phase*uu[i][j];
         			}
-				replace(*uu,2,is);
+				replace(*uu, is, 2);
 			}
 		}
 	}
@@ -1022,12 +1034,12 @@ void ConfigData::z3rot(){
                                         std::cout << "Loop 1st volume" << std::endl;
                                         std::cout << "i1=" << i1 << " i2=" << i2 << " i3=" << i3 << " i4=" << i4 << std::endl;
                                 }
-				extract(*uu,3,is);
+				extract(*uu, is, 3);
 				for(int i=0;i<matrixdim;i++)
  			       	for(int j=0;j<matrixdim;j++){
                 			uu[i][j]=phase*uu[i][j];
         			}
-				replace(*uu,3,is);
+				replace(*uu, is, 3);
 			}
 		}
 	}
