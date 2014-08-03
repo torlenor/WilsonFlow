@@ -381,9 +381,13 @@ int main(int argc, char *argv[]) {
     std::cout << "Plaquette (from staples) = " <<  plaq << std::endl;
 
     std::stringstream fmeasname;
-    fmeasname << "flow_" << opt.filenames[n];
+    fmeasname << opt.filenames[n] << ".flow";
     std::ofstream file;
     file.open(fmeasname.str().c_str());
+    if (! file.is_open() ) {
+      std::cout << "There was a problem opening the file " << fmeasname.str() << " !" << std::endl;
+      exit(1);
+    }
     file << "# Input: " << opt.filenames[n] << std::endl;
     file << "# t <Plaq_t> <E_t> <Poll_t>" << std::endl;
     
