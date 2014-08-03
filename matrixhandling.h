@@ -19,10 +19,10 @@ std::complex<double> multtrace(std::complex<double> a[d3][d3], std::complex<doub
 void za(std::complex<double> c[d3][d3], double z, std::complex<double> a[d3][d3]);
 void adag(std::complex<double> a[d3][d3]);
 
-void expM(std::complex<double> U[3][3], std::complex<double> A[3][3]);
-void projA(std::complex<double> A[3][3], std::complex<double> U[3][3]);
+void expM(std::complex<double> U[d3][d3], std::complex<double> A[d3][d3]);
+void projA(std::complex<double> A[d3][d3], std::complex<double> U[d3][d3]);
 
-double testAntiHerm(std::complex<double> A[3][3]);
-double testUnitarity(std::complex<double> U[3][3]);
+double testAntiHerm(std::complex<double> A[d3][d3]);
+double testUnitarity(std::complex<double> U[d3][d3]);
 
 #endif /* _MATRIXHANDLING_H */

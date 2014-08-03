@@ -112,21 +112,21 @@ void adag(std::complex<double> a[d3][d3]){
        a[2][1]=conj(tmp);
 }
 
-void expM(std::complex<double> U[3][3], std::complex<double> A[3][3]) {
+void expM(std::complex<double> U[d3][d3], std::complex<double> A[d3][d3]) {
   // U = exp(A)
   // U = 1 + sum_i 1/i! * A^i
   const int nmax=20;
   
-  std::complex<double> Atmp1[3][3];
-  std::complex<double> Atmp2[3][3];
+  std::complex<double> Atmp1[d3][d3];
+  std::complex<double> Atmp2[d3][d3];
   
-  for(int i=0 ; i<3; i++) {
-    for(int j=0 ; j<3; j++) {
+  for(int i=0 ; i<d3; i++) {
+    for(int j=0 ; j<d3; j++) {
       U[i][j] = 0;
     }
   }
   
-  for(int i=0 ; i<3; i++) {
+  for(int i=0 ; i<d3; i++) {
     U[i][i] = 1;
     Atmp1[i][i] = 1;
   }
@@ -142,12 +142,12 @@ void expM(std::complex<double> U[3][3], std::complex<double> A[3][3]) {
   }
 }
 
-void projA(std::complex<double> A[3][3], std::complex<double> U[3][3]) {
+void projA(std::complex<double> A[d3][d3], std::complex<double> U[d3][d3]) {
   // A = proj(U), where U is projected on a antihermitian traceless matrix A
   // proj(U) = ( U - U^dag)/2 - i*( U - U^dag)/2 )/3
 
-  std::complex<double> Udag[3][3];
-  std::complex<double> UmUdag[3][3];
+  std::complex<double> Udag[d3][d3];
+  std::complex<double> UmUdag[d3][d3];
 
   aeb(Udag,U);
   adag(Udag);
@@ -159,38 +159,38 @@ void projA(std::complex<double> A[3][3], std::complex<double> U[3][3]) {
 
   std::complex<double> trace;
   trace = UmUdag[0][0] + UmUdag[1][1] + UmUdag[2][2];
-  for (int i=0; i<3; i++) {
+  for (int i=0; i<d3; i++) {
     A[i][i] -= trace/(double)3;
   }
 }
 
-double testAntiHerm(std::complex<double> A[3][3]) {
+double testAntiHerm(std::complex<double> A[d3][d3]) {
   // Define a norm for antihermitian properties
   // N_ah = || A || = | sum_i,j A_ij + conj(A_ji) |
   std::complex<double> cnorm;
-  for (int i=0; i<3; i++)
-  for (int j=0; j<3; j++) {
+  for (int i=0; i<d3; i++)
+  for (int j=0; j<d3; j++) {
     cnorm += A[i][j] + conj(A[j][i]);
   }
 
   return abs(cnorm);
 }
 
-double testUnitarity(std::complex<double> U[3][3]) {
+double testUnitarity(std::complex<double> U[d3][d3]) {
   // Test Unitarity U U^dag = 1
   // Define a norm for unitary properties
   // N_ah = || U || = ...
 
-  std::complex<double> Udag[3][3];
-  std::complex<double> UUdag[3][3];
+  std::complex<double> Udag[d3][d3];
+  std::complex<double> UUdag[d3][d3];
 
   aeb(Udag,U);
   adag(Udag);
   axb(UUdag,U,Udag);
 
   std::complex<double> cnorm;
-  for (int i=0; i<3; i++) {
-    for (int j=0; j<3; j++) {
+  for (int i=0; i<d3; i++) {
+    for (int j=0; j<d3; j++) {
       cnorm += UUdag[i][j];
     }
     cnorm -= 1;
