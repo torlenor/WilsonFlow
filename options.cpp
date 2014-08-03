@@ -24,10 +24,14 @@
 #include <iostream>
  
 void Options::PrintSettings() {
-  std::cout << "Settings:" << std::endl
+  std::cout << "SETTINGS:" << std::endl
   << "Ns = " << ns << std::endl
-  << "Nt = " << nt << std::endl
-  << "Filename = " << filename << std::endl;
+  << "Nt = " << nt << std::endl << std::endl
+  << "Nmeas = " << nmeas << std::endl;
+  if (filenames.size() > 1) {
+    std::cout << "Filename list = " << filenamelist << std::endl;
+  }
+  std::cout << "Filename = " << filenames[0] << std::endl;
   switch (type) {
     case 0:
       std::cout << "Storage format: binary (new)" << std::endl;
@@ -44,10 +48,11 @@ void Options::PrintSettings() {
     default:
       std::cout << "Storage format: ERROR!!!" << std::endl;
   } 
-  std:: cout<< "writeconf = " << writeconf << std::endl
+  std:: cout << std::endl << "writeconf = " << writeconf << std::endl
   << "meas = " << meas << std::endl << std::endl
   << "Wilson Flow settings:" << std::endl
   << "Flow step eps = " << eps << std::endl
-  << "Max. flow time t_max = " << tmax << std::endl;
+  << "Max. flow time t_max = " << tmax << std::endl
+  << "END SETTINGS" << std::endl;
 }
 

@@ -287,12 +287,10 @@ void SmallFlowStep(ConfigData *config) {
       // For link U_x,mu
       
       // First part with Z0
-      // CalcZ(Z0, W0, x, mu);
       S0->extract(*Z0, x, mu); // load Z0
       za(A, 17.0/36.0*opt.eps, Z0);
 
       // Add second part with Z1
-      // CalcZ(Z1, W1, x, mu);
       S1->extract(*Z1, x, mu); // load Z1
       za(A2, -8.0/9.0*opt.eps, Z1);
       
@@ -339,81 +337,91 @@ int main(int argc, char *argv[]) {
 
   std::cout << std::endl;
 
+  // Start meas loop over gauge configuraions
   ConfigData *config;
+  for (int n=0; n<opt.nmeas; n++) {
+    std::cout << std::endl << "Measurement " << n+1 << " of " << opt.nmeas << std::endl;
 
-  // Read the config given on command line
-  // int ret=config->readBinaryConfig2(opt.filename);
-  // if (ret!=0) {
-  //   std::cout << "ERROR: Reading binary config file!" << std::endl;
-  //   return 1;
-  // }
+    // Read gauge configuration from file
+    config = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+    int ret;
+    switch (opt.type) {
+      case 0:
+        ret=config->readBinaryConfig2(opt.filenames[n]);
+        if(ret!=0){
+          std::cout << "ERROR: Reading binary config file (new storage format)!" << std::endl;
+          return 1;
+        }   
+        break;
 
+      case 1:
+        ret=config->MILCreadConfig(opt.filenames[n]);
+        if(ret!=0){
+          std::cout << "ERROR: Reading MILC config file!" << std::endl;
+          return 1;
+        }   
+        break;
 
-  int ret;
-  config = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
-  switch (opt.type) {
-    case 0:
-      ret=config->readBinaryConfig2(opt.filename);
-      if(ret!=0){
-        std::cout << "ERROR: Reading binary config file (new storage format)!" << std::endl;
+      case 2:
+        ret=config->readFConfig(opt.filenames[n]);
+        if(ret!=0){
+          std::cout << "ERROR: Reading Fortran config file!" << std::endl;
+          return 1;
+        }
+        break;
+
+      default:
+        std::cout << "ERROR: Requested TYPE not understood!" << std::endl;
         return 1;
       }   
-      break;
-
-    case 1:
-      ret=config->MILCreadConfig(opt.filename);
-      if(ret!=0){
-        std::cout << "ERROR: Reading MILC config file!" << std::endl;
-        return 1;
-      }   
-      break;
-
-    case 2:
-      ret=config->readFConfig(opt.filename);
-      if(ret!=0){
-        std::cout << "ERROR: Reading Fortran config file!" << std::endl;
-        return 1;
-      }
-      break;
-
-    default:
-      std::cout << "ERROR: Requested TYPE not understood!" << std::endl;
-      return 1;
-    }   
-  
-  // Test of staple sum
-  std::complex<double> plaq;
-  plaq = CalcPlaq(config);
-  std::cout << "Plaquette (from staples) = " <<  plaq << std::endl;
-
-  std::ofstream file;
-  file.open("plaq.data");
-  file << "t <Plaq_t> <E_t> <Poll_t>" << std::endl;
-  
-  std::cout << std::endl << "Flow calculation: ( t <Plaq_t> <E_t> <Poll_t> )" << std::endl;
-
-  std::complex<double> E, poll;
-
-  // Step t=0
-  // E = CalcE(config);
-  E = 1.0 - plaq;
-  poll = CalcPoll(config);
-  std::cout << 0 << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
-  file << 0 << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
-
-  // Evolution in t up to t_max in steps of eps
-  for (double t=0; t<opt.tmax; t+=opt.eps) {
-    tstart = gettime();
-    SmallFlowStep(config);
+    
+    // Test of staple sum
+    std::complex<double> plaq;
     plaq = CalcPlaq(config);
+    std::cout << "Plaquette (from staples) = " <<  plaq << std::endl;
+
+    std::stringstream fmeasname;
+    fmeasname << "flow_" << opt.filenames[n];
+    std::ofstream file;
+    file.open(fmeasname.str().c_str());
+    file << "# Input: " << opt.filenames[n] << std::endl;
+    file << "# t <Plaq_t> <E_t> <Poll_t>" << std::endl;
+    
+    if (opt.verbose)
+      std::cout << std::endl << "Flow calculation: ( t <Plaq_t> <E_t> <Poll_t> )" << std::endl;
+
+    std::complex<double> E, poll;
+
+    // Step t=0
     // E = CalcE(config);
     E = 1.0 - plaq;
     poll = CalcPoll(config);
-    std::cout << t+opt.eps << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
-    file << t+opt.eps << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
-    tend = gettime();
-    std::cout << "Evolution step done in " << tend - tstart << " s." << std::endl;
-  }
 
-  file.close();
+    if (opt.verbose)
+      std::cout << 0 << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
+
+    file << 0 << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
+
+    // Evolution in t up to t_max in steps of eps
+    for (double t=0; t<opt.tmax; t+=opt.eps) {
+      std::cout << "Flow time t = " << t+opt.eps << " ... " << std::flush;
+      tstart = gettime();
+      SmallFlowStep(config);
+      plaq = CalcPlaq(config);
+      // E = CalcE(config);
+      E = 1.0 - plaq;
+      poll = CalcPoll(config);
+
+      if (opt.verbose)
+        std::cout << t+opt.eps << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
+
+      file << t+opt.eps << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
+      tend = gettime();
+      std::cout << " done in " << tend - tstart << " s." << std::endl;
+    }
+
+    file.close();
+
+    delete config; config=0; // cleanup
+  }
 }

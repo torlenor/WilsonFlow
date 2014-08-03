@@ -23,6 +23,7 @@
 #define OPTIONS_H
 
 #include <string>
+#include <vector>
 
 class Options {
   public:
@@ -34,14 +35,19 @@ class Options {
     int ns;
     int nt;
 
+    int nmeas;
+
     bool meas;
     bool writeconf;
 
     double eps;
     double tmax;
 
-    std::string filename;
+    std::string filenamelist;
+    std::vector<std::string> filenames;
     int type;
+
+    bool verbose;
 };
 
 
