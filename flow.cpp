@@ -26,6 +26,7 @@
 
 #include "ConfigData.hpp"
 #include "init.h"
+// #include "jackknife.h"
 #include "matrixhandling.h"
 #include "measuretime.h"
 #include "options.h"
@@ -173,6 +174,41 @@ std::complex<double> CalcPlaq(ConfigData *config) {
 
   // Additional factor of 4 because of double (quad) counting of plaquettes
   return plaq/(double)(4*6*3*opt.ns*opt.ns*opt.ns*opt.nt);
+}
+
+template <class T>
+void Jackknife(std::vector<T> &in, T &mean, T &error) {
+  int nmeas=in.size();
+
+  mean = 0;
+  for (int j=0; j<nmeas; j++) {
+    mean += in[j];
+  }   
+  mean=mean/(double)nmeas;
+
+  error = 0;
+  for (int j=0; j<nmeas; j++){
+    error += pow(mean-in[j],2);
+  }   
+
+  error = sqrt((double)(nmeas-1)*error/(double)(nmeas));
+}
+
+template <class T>
+void CalcJackMean(std::vector<T> &meas, T &mean, T &error) {
+  std::vector<T> jackdata;
+  jackdata.resize(meas.size());
+
+  for (int n=0; n<meas.size(); n++) {
+    jackdata[n] = 0;
+    for (int j=0; j<meas.size(); j++) {
+      if (n!=j)
+        jackdata[n] += meas[j];
+    }   
+    jackdata[n] = jackdata[n]/(double)(opt.nmeas-1);
+  }
+
+  Jackknife(jackdata, mean, error);
 }
 
 void CopyConfig(ConfigData *configDst, ConfigData *configSrc) {
@@ -337,6 +373,8 @@ int main(int argc, char *argv[]) {
 
   std::cout << std::endl;
 
+  std::vector<double> plaqdata, edata, polldata;
+
   // Start meas loop over gauge configuraions
   ConfigData *config;
   for (int n=0; n<opt.nmeas; n++) {
@@ -425,7 +463,38 @@ int main(int argc, char *argv[]) {
     }
 
     file.close();
+    
+    plaqdata.push_back(std::real(plaq));
+    polldata.push_back(std::abs(poll));
+    edata.push_back(std::real(E));
 
     delete config; config=0; // cleanup
   }
+    
+  // Calculate mean values using Jackknife
+  // void CalcJackMean(std::vector<T> &meas, T &mean, T &error)
+  double plaqmean, plaqerr, pollmean, pollerr, emean, eerr;
+  CalcJackMean(plaqdata, plaqmean, plaqerr);
+  CalcJackMean(polldata, pollmean, pollerr);
+  CalcJackMean(edata, emean, eerr);
+
+  // Write mean values calculated using Jackknife
+  std::stringstream fmeanname;
+  fmeanname << "mean_" << opt.ns << "x" << opt.nt << ".flow";
+  std::ofstream mfile;
+  mfile.open(fmeanname.str().c_str());
+  
+  if (! mfile.is_open() ) {
+    std::cout << "There was a problem opening the file " << fmeanname.str() << " !" << std::endl;
+    exit(1);
+  }
+
+  mfile << "# t = " << opt.tmax << std::endl;
+  mfile << "# <Plaq_t> <Plaq_t>err <E_t> <E_t>err <Poll_t> <Poll_t>err" << std::endl;
+  mfile << plaqmean << " " << plaqerr << " "
+        << emean << " " << eerr << " "
+        << pollmean << " " << pollerr << " "
+        << std::endl;
+
+  mfile.close();
 }
