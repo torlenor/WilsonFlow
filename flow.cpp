@@ -26,7 +26,6 @@
 
 #include "ConfigData.hpp"
 #include "init.h"
-// #include "jackknife.h"
 #include "matrixhandling.h"
 #include "measuretime.h"
 #include "options.h"
