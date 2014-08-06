@@ -364,6 +364,39 @@ void SmallFlowStep(ConfigData *config) {
   delete Wtpeps; Wtpeps = 0;
 }
 
+void ReadConfig(ConfigData *config, std::string filename) {
+  int ret;
+  switch (opt.type) {
+    case 0:
+      ret=config->readBinaryConfig2(filename);
+      if(ret!=0){
+        std::cout << "ERROR: Reading binary config file (new storage format)!" << std::endl;
+        exit(1);
+      }   
+      break;
+
+    case 1:
+      ret=config->MILCreadConfig(filename);
+      if(ret!=0){
+        std::cout << "ERROR: Reading MILC config file!" << std::endl;
+        exit(1);
+      }   
+      break;
+
+    case 2:
+      ret=config->readFConfig(filename);
+      if(ret!=0){
+        std::cout << "ERROR: Reading Fortran config file!" << std::endl;
+        exit(1);
+      }
+      break;
+
+    default:
+      std::cout << "ERROR: Requested TYPE not understood!" << std::endl;
+      exit(1);
+    }   
+}
+
 int main(int argc, char *argv[]) {
   double tstart, tend;
 
@@ -382,37 +415,8 @@ int main(int argc, char *argv[]) {
 
     // Read gauge configuration from file
     config = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
-    int ret;
-    switch (opt.type) {
-      case 0:
-        ret=config->readBinaryConfig2(opt.filenames[n]);
-        if(ret!=0){
-          std::cout << "ERROR: Reading binary config file (new storage format)!" << std::endl;
-          return 1;
-        }   
-        break;
+    ReadConfig(config, opt.filenames[n]);
 
-      case 1:
-        ret=config->MILCreadConfig(opt.filenames[n]);
-        if(ret!=0){
-          std::cout << "ERROR: Reading MILC config file!" << std::endl;
-          return 1;
-        }   
-        break;
-
-      case 2:
-        ret=config->readFConfig(opt.filenames[n]);
-        if(ret!=0){
-          std::cout << "ERROR: Reading Fortran config file!" << std::endl;
-          return 1;
-        }
-        break;
-
-      default:
-        std::cout << "ERROR: Requested TYPE not understood!" << std::endl;
-        return 1;
-      }   
-    
     // Test of staple sum
     std::complex<double> plaq;
     plaq = CalcPlaq(config);
@@ -435,7 +439,6 @@ int main(int argc, char *argv[]) {
     std::complex<double> E, poll;
 
     // Step t=0
-    // E = CalcE(config);
     E = 1.0 - plaq;
     poll = CalcPoll(config);
 
@@ -450,7 +453,6 @@ int main(int argc, char *argv[]) {
       tstart = gettime();
       SmallFlowStep(config);
       plaq = CalcPlaq(config);
-      // E = CalcE(config);
       E = 1.0 - plaq;
       poll = CalcPoll(config);
 
