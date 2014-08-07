@@ -310,12 +310,12 @@ int ConfigData::writeBinaryConfig(std::string fconfigname){
 int ConfigData::writeBinaryConfig2(std::string fconfigname){
 	int elems=0;
 	std::complex<double> plaq, poll;
-       	FILE* pFile;
+  FILE* pFile;
 
 	int nindex=nsite*matrixdim*matrixdim*DIM;
 
-       	pFile = fopen(fconfigname.c_str(), "wb");
-   	if (pFile == NULL) perror ("Error opening file");
+  pFile = fopen(fconfigname.c_str(), "wb");
+  if (pFile == NULL) perror ("Error opening file");
 	else{
 		elems += fwrite(&leng1, sizeof(int), 1, pFile);
 		elems += fwrite(&leng2, sizeof(int), 1, pFile);
@@ -332,7 +332,7 @@ int ConfigData::writeBinaryConfig2(std::string fconfigname){
 
 		fclose(pFile);
 	}
-        return nindex + 6 - elems;
+  return nindex + 6 - elems;
 }
 
 int ConfigData::writeNERSCConfig(std::string fconfigname){
