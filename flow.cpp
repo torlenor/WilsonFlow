@@ -260,9 +260,7 @@ void SmallFlowStep(ConfigData *config) {
 
   // We allocate a new ConfigData
   // W_0 = V_t : W0 = config;
-  // ConfigData *W0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   ConfigData *S0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
-  // CopyConfig(W0, config);
   
   // W_1 = exp(1/4 Z_0) W_0
   ConfigData *W1 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
@@ -277,9 +275,11 @@ void SmallFlowStep(ConfigData *config) {
       config->extract(*U, x, mu);
       axb(newU, expA, U);
 
-      if (testUnitarity(newU) > 1e-5) {
-        std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
-      }
+      #ifdef DEBUG
+        if (testUnitarity(newU) > 1e-5) {
+          std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
+        }
+      #endif
 
       W1->replace(*newU, x, mu);
     }
@@ -287,29 +287,29 @@ void SmallFlowStep(ConfigData *config) {
   
   // W_2 = exp(8/9 Z_1 - 17/36 Z_0) W_1
   ConfigData *W2 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
-  ConfigData *S1 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for (int mu=0; mu<4; mu++) {
       // First part with Z0
-      // CalcZ(Z0, W0, x, mu);
-      S0->extract(*Z0, x, mu); // save this into ConfigData for Z0s
+      S0->extract(*Z0, x, mu); // get this from ConfigData for Z0s
       za(A, -17.0/36.0*opt.eps, Z0);
 
       // Add second part with Z1
       CalcZ(Z1, W1, x, mu);
-      S1->replace(*Z1, x, mu); // save this into ConfigData for Z0s
       za(A2, 8.0/9.0*opt.eps, Z1);
 
       // Add both parts
       apb(A,A2);
+      S0->replace(*A, x, mu); // save this into ConfigData S0 (A=-17/36*Z0 + 8/9*Z1)
 
       expM(expA, A);
       W1->extract(*U, x, mu);
       axb(newU, expA, U);
 
-      if (testUnitarity(newU) > 1e-5) {
-        std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
-      }
+      #ifdef DEBUG
+        if (testUnitarity(newU) > 1e-5) {
+          std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
+        }
+      #endif
 
       W2->replace(*newU, x, mu);
     }
@@ -317,21 +317,13 @@ void SmallFlowStep(ConfigData *config) {
   delete W1; W1 = 0;
 
   // W_t+eps = exp(3/4 Z_2 - 8/9 Z_1 + 17/36 Z_0) W_2
-  // ConfigData *Wtpeps = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for (int mu=0; mu<4; mu++) {
       // For link U_x,mu
       
-      // First part with Z0
-      S0->extract(*Z0, x, mu); // load Z0
-      za(A, 17.0/36.0*opt.eps, Z0);
-
-      // Add second part with Z1
-      S1->extract(*Z1, x, mu); // load Z1
-      za(A2, -8.0/9.0*opt.eps, Z1);
-      
-      // Add both parts
-      apb(A,A2);
+      // First part with Z0 and Z1
+      S0->extract(*Z0, x, mu); // load -17/36*Z0 + 8/9*Z1
+      za(A, -1.0, Z0); // switch the sign
       
       // Add third part with Z2
       CalcZ(Z2, W2, x, mu);
@@ -344,24 +336,19 @@ void SmallFlowStep(ConfigData *config) {
       W2->extract(*U, x, mu);
       axb(newU, expA, U);
 
-      if (testUnitarity(newU) > 1e-5) {
-        std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
-      }
+      #ifdef DEBUG
+        if (testUnitarity(newU) > 1e-5) {
+          std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
+        }
+      #endif
 
-      // Wtpeps->replace(*newU, x, mu);
       config->replace(*newU, x, mu);
     }
   }
 
-  // Make Wtpeps the current configuration now at t' = t+eps
-  // CopyConfig(config, Wtpeps);
-  
   // Cleaning up
-  // delete W0; W0 = 0;
   delete W2; W2 = 0;
   delete S0; S0 = 0;
-  delete S1; S1 = 0;
-  // delete Wtpeps; Wtpeps = 0;
 }
 
 void ReadConfig(ConfigData *config, std::string filename) {
