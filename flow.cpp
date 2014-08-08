@@ -260,21 +260,21 @@ void SmallFlowStep(ConfigData *config) {
 
   // We allocate a new ConfigData
   // W_0 = V_t : W0 = config;
-  ConfigData *W0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  // ConfigData *W0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   ConfigData *S0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
-  CopyConfig(W0, config);
+  // CopyConfig(W0, config);
   
   // W_1 = exp(1/4 Z_0) W_0
   ConfigData *W1 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for (int mu=0; mu<4; mu++) {
       // For link U_x,mu
-      CalcZ(Z0, W0, x, mu);
+      CalcZ(Z0, config, x, mu);
       S0->replace(*Z0, x, mu); // save this into ConfigData for Z0s
       za(A, 1.0/4.0*opt.eps, Z0);
 
       expM(expA, A);
-      W0->extract(*U, x, mu);
+      config->extract(*U, x, mu);
       axb(newU, expA, U);
 
       if (testUnitarity(newU) > 1e-5) {
@@ -314,9 +314,10 @@ void SmallFlowStep(ConfigData *config) {
       W2->replace(*newU, x, mu);
     }
   }
+  delete W1; W1 = 0;
 
   // W_t+eps = exp(3/4 Z_2 - 8/9 Z_1 + 17/36 Z_0) W_2
-  ConfigData *Wtpeps = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  // ConfigData *Wtpeps = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
     for (int mu=0; mu<4; mu++) {
       // For link U_x,mu
@@ -347,20 +348,20 @@ void SmallFlowStep(ConfigData *config) {
         std::cout << "WARNING: New link in SmallFlowStep() not unitary anymore!" << std::endl;
       }
 
-      Wtpeps->replace(*newU, x, mu);
+      // Wtpeps->replace(*newU, x, mu);
+      config->replace(*newU, x, mu);
     }
   }
 
   // Make Wtpeps the current configuration now at t' = t+eps
-  CopyConfig(config, Wtpeps);
+  // CopyConfig(config, Wtpeps);
   
   // Cleaning up
-  delete W0; W0 = 0;
-  delete W1; W1 = 0;
+  // delete W0; W0 = 0;
   delete W2; W2 = 0;
   delete S0; S0 = 0;
   delete S1; S1 = 0;
-  delete Wtpeps; Wtpeps = 0;
+  // delete Wtpeps; Wtpeps = 0;
 }
 
 void ReadConfig(ConfigData *config, std::string filename) {
@@ -396,6 +397,14 @@ void ReadConfig(ConfigData *config, std::string filename) {
     }   
 }
 
+void WriteConfig(ConfigData *config, std::string filename) {
+      int ret=config->writeBinaryConfig2(filename);
+      if(ret!=0){
+        std::cout << "ERROR: Writing binary config file (new storage format)!" << std::endl;
+        exit(1);
+      }   
+}
+
 int main(int argc, char *argv[]) {
   double tstart, tend;
 
@@ -422,7 +431,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Plaquette (from staples) = " <<  plaq << std::endl;
 
     std::stringstream fmeasname;
-    fmeasname << opt.filenames[n] << ".flow";
+    fmeasname << "meas_" << opt.filenames[n] << ".flow";
     std::ofstream file;
     file.open(fmeasname.str().c_str());
     if (! file.is_open() ) {
@@ -468,6 +477,14 @@ int main(int argc, char *argv[]) {
     plaqdata.push_back(std::real(plaq));
     polldata.push_back(std::abs(poll));
     edata.push_back(std::real(E));
+  
+    if (opt.writeconf) {
+      // Write configuration at t=tmax
+      std::stringstream fconfname;
+      fconfname << opt.filenames[n].substr(opt.filenames[n].find_last_of("\\/")+1) << "_t" << opt.tmax;
+      std::cout << "Writing configuration at t = " << opt.tmax << " to " << fconfname.str() << std::endl;
+      WriteConfig(config, fconfname.str());
+    }
 
     delete config; config=0; // cleanup
   }

@@ -1,6 +1,7 @@
 #include "matrixhandling.h"
 
 #include <complex>
+#include <iostream>
 
 #define d3 3
 
@@ -112,6 +113,19 @@ void adag(std::complex<double> a[d3][d3]){
        a[2][1]=conj(tmp);
 }
 
+inline bool IsSmall(std::complex<double> U[d3][d3]) {
+  double abs=0;
+  for (int j=0; j<d3; j++)
+  for (int i=0; i<d3; i++) {
+    abs += std::abs(U[j][i]);
+  }
+  if (abs < 1e-15) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void expM(std::complex<double> U[d3][d3], std::complex<double> A[d3][d3]) {
   // U = exp(A)
   // U = 1 + sum_i 1/i! * A^i
@@ -133,13 +147,17 @@ void expM(std::complex<double> U[d3][d3], std::complex<double> A[d3][d3]) {
 
   double fact=1;
 
-  for (int i=1; i<nmax; i++) {
+  int i=0;
+  for (i=1; i<nmax; i++) {
     fact *= i;
     axb(Atmp2,Atmp1,A);
     aeb(Atmp1,Atmp2);
     za(Atmp2, 1.0/(double)fact, Atmp2);
     apb(U,Atmp2);
+    if (IsSmall(Atmp2))
+      break;
   }
+  // std::cout << i << std::endl;
 }
 
 void projA(std::complex<double> A[d3][d3], std::complex<double> U[d3][d3]) {
