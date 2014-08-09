@@ -21,6 +21,7 @@
 
 #include "init.h"
 
+#include <cstdlib>
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
