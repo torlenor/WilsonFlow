@@ -44,9 +44,7 @@ void PrintMatrix(std::complex<double> M[3][3]) {
 
 std::complex<double> CalcPoll(ConfigData *config) {
   // Calculates the Polyakov loop spatial average
-  std::complex<double> poll, trace;
-  poll=std::complex<double> (0,0);
-  trace=std::complex<double> (0,0);
+  std::complex<double> poll(0,0), trace(0,0);
 
   std::complex<double> up[3][3], uu[3][3], upaux[3][3];
 
@@ -85,11 +83,7 @@ std::complex<double> CalcPoll(ConfigData *config) {
 }
 
 void CalcStapleSum(std::complex<double> S[3][3], ConfigData *config, int x, int mu) {
-  std::complex<double> U1[3][3];
-  std::complex<double> U2[3][3];
-  std::complex<double> U3[3][3];
-  std::complex<double> U21[3][3];
-  std::complex<double> U321[3][3];
+  std::complex<double> U1[3][3], U2[3][3], U3[3][3], U21[3][3], U321[3][3];
 
   for (int i=0; i<3; i++)
   for (int j=0; j<3; j++) {
@@ -131,7 +125,7 @@ void CalcStapleSum(std::complex<double> S[3][3], ConfigData *config, int x, int 
 std::complex<double> CalcE(ConfigData *config) {
   // Calculates the plaquette spatial average over all 6N plaquettes
   int ispmu, ispnu;
-  std::complex<double> sumplaqs = std::complex<double>(0,0), trace;
+  std::complex<double> sumplaqs(0,0), trace(0,0);
   std::complex<double> u1[3][3], u2[3][3], u3[3][3], u4[3][3], u23[3][3], u234[3][3];
 
   for (int is=0; is<opt.ns*opt.ns*opt.ns*opt.nt; is++) {
@@ -158,9 +152,7 @@ std::complex<double> CalcE(ConfigData *config) {
 }
 
 std::complex<double> CalcPlaq(ConfigData *config) {
-  std::complex<double> U[3][3];
-  std::complex<double> S[3][3];
-  
+  std::complex<double> U[3][3], S[3][3];
   std::complex<double> plaq;
 
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
@@ -222,9 +214,7 @@ void CopyConfig(ConfigData *configDst, ConfigData *configSrc) {
 }
 
 void CalcZ(std::complex<double> Z[3][3], ConfigData *W, int x, int mu) {
-  std::complex<double> U[3][3];
-  std::complex<double> S[3][3];
-  std::complex<double> US[3][3];
+  std::complex<double> U[3][3], S[3][3], US[3][3];
 
   W->extract(*U, x, mu);
   CalcStapleSum(S, W, x, mu);
@@ -246,25 +236,16 @@ void SmallFlowStep(ConfigData *config) {
   // The input configuration 'config' will be overwritten with the
   // configuration at flow time t'=t+eps.
   
-  std::complex<double> U[3][3];
-
-  std::complex<double> Z0[3][3];
-  std::complex<double> Z1[3][3];
-  std::complex<double> Z2[3][3];
-  
-  std::complex<double> A[3][3];
-  std::complex<double> A2[3][3];
-
-  std::complex<double> expA[3][3];
-  std::complex<double> newU[3][3];
-
   // We allocate a new ConfigData
   // W_0 = V_t : W0 = config;
   ConfigData *S0 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
   
   // W_1 = exp(1/4 Z_0) W_0
   ConfigData *W1 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+
+  #pragma omp parallel for
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
+    std::complex<double> U[3][3], Z0[3][3], A[3][3], expA[3][3], newU[3][3];
     for (int mu=0; mu<4; mu++) {
       // For link U_x,mu
       CalcZ(Z0, config, x, mu);
@@ -287,7 +268,10 @@ void SmallFlowStep(ConfigData *config) {
   
   // W_2 = exp(8/9 Z_1 - 17/36 Z_0) W_1
   ConfigData *W2 = new ConfigData(opt.ns, opt.ns, opt.ns, opt.nt, 3);
+  
+  #pragma omp parallel for
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
+    std::complex<double> U[3][3], Z0[3][3], Z1[3][3], A[3][3], A2[3][3], expA[3][3], newU[3][3];
     for (int mu=0; mu<4; mu++) {
       // First part with Z0
       S0->extract(*Z0, x, mu); // get this from ConfigData for Z0s
@@ -315,9 +299,12 @@ void SmallFlowStep(ConfigData *config) {
     }
   }
   delete W1; W1 = 0;
-
+  
   // W_t+eps = exp(3/4 Z_2 - 8/9 Z_1 + 17/36 Z_0) W_2
+  
+  #pragma omp parallel for
   for (int x=0; x<opt.ns*opt.ns*opt.ns*opt.nt; x++) {
+    std::complex<double> U[3][3], Z0[3][3], Z2[3][3], A[3][3], A2[3][3], expA[3][3], newU[3][3];
     for (int mu=0; mu<4; mu++) {
       // For link U_x,mu
       
