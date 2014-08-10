@@ -430,7 +430,9 @@ int main(int argc, char *argv[]) {
     file << 0 << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
 
     // Evolution in t up to t_max in steps of eps
+    int cnt=0;
     for (double t=0; t<opt.tmax; t+=opt.eps) {
+      cnt+=1;
       std::cout << "Flow time t = " << t+opt.eps << " ... " << std::flush;
       tstart = gettime();
       SmallFlowStep(config);
@@ -442,8 +444,18 @@ int main(int argc, char *argv[]) {
         std::cout << t+opt.eps << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
 
       file << t+opt.eps << " " << std::real(plaq) << " " << std::real(E) << " " << std::abs(poll) << std::endl;
+
+      if (opt.iswriteceveryt) {
+        if (cnt % opt.writeceveryt == 0) {
+          std::stringstream fconfname;
+          fconfname << opt.filenames[n].substr(opt.filenames[n].find_last_of("\\/")+1) << "_t" << t+opt.eps;
+          std::cout << "writing configuration at t = " << t+opt.eps << " to " << fconfname.str() << " ... " << std::flush;
+          WriteConfig(config, fconfname.str());
+        }
+      }
+
       tend = gettime();
-      std::cout << " done in " << tend - tstart << " s." << std::endl;
+      std::cout << "done in " << tend - tstart << " s." << std::endl;
     }
 
     file.close();

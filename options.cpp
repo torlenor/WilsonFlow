@@ -48,8 +48,9 @@ void Options::PrintSettings() {
     default:
       std::cout << "Storage format: ERROR!!!" << std::endl;
   } 
-  std:: cout << std::endl << "writeconf = " << writeconf << std::endl
-  << "meas = " << meas << std::endl << std::endl
+  std:: cout << std::endl << "Write config. at t=t_max: " << writeconf << std::endl
+  << "Write config. after every n-th t: " << writeceveryt << std::endl
+  << "Write measurements: " << meas << std::endl << std::endl
   << "Wilson Flow settings:" << std::endl
   << "Flow step eps = " << eps << std::endl
   << "Max. flow time t_max = " << tmax << std::endl

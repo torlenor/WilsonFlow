@@ -40,20 +40,21 @@ int Init(int &argc, char *argv[], Options &opt) {
       "      f      Fortran format\n"
       "\n"
       "Mandatory arguments to long options are mandatory for short options too.\n"
-      "  -s, --Ns SSIZE     spatial lattice extent (default = 4)\n"
-      "  -t, --Nt TSIZE     temporal lattice extent (default = 4)\n"
-      "  -n, --nmeas NMEAS  number of configurations (default = 1)\n"
+      "  -s, --Ns SSIZE         spatial lattice extent (default = 4)\n"
+      "  -t, --Nt TSIZE         temporal lattice extent (default = 4)\n"
+      "  -n, --nmeas NMEAS      number of configurations (default = 1)\n"
       "\n"  
-      "  -e, --eps Epsilon  Flow time step\n"
-      "  -f, --ftime t_max  Iterate Flow time until t=t_max\n"
+      "  -e, --eps Epsilon      Flow time step\n"
+      "  -f, --ftime t_max      Iterate Flow time until t=t_max\n"
       "\n"  
-      "  -m  --meas         perform basic measurements and write them to file (default on)\n"
-      "  -c  --writeconf    writes configurations to disk\n"
+      "  -m  --meas             perform basic measurements and write them to file (default on)\n"
+      "  -c  --writeconf        writes configurations to disk\n"
+      "  -w  --wconfeveryt NUM   writes configurations to disk after every n-th t\n"
       "\n"  
-      "  -d  --debug        write versbose informations to stdout\n"
+      "  -d  --debug            write versbose informations to stdout\n"
       "\n"  
-      "  -h  --help         display this help and exit\n"
-      "  -v  --version      output version information and exit\n"
+      "  -h  --help             display this help and exit\n"
+      "  -v  --version          output version information and exit\n"
       "\n"
       "Exit status:\n"
       " 0  if OK,\n"
@@ -91,6 +92,8 @@ int Init(int &argc, char *argv[], Options &opt) {
   opt.eps=0.02;
   opt.tmax=2.00;
   opt.verbose=false;
+  opt.iswriteceveryt=false;
+  opt.writeceveryt=0;
 
   int c;
 
@@ -107,6 +110,7 @@ int Init(int &argc, char *argv[], Options &opt) {
       /* These options set a flag. */
       {"meas", no_argument, 0, 'm'},
       {"writeconf", no_argument, 0, 'c'},
+      {"wconfeveryt", required_argument, 0, 'w'},
       {"verbose", no_argument, 0, 'd'},
       {"help", no_argument, 0, 'h'},
       {"version", no_argument, 0, 'v'},
@@ -116,7 +120,7 @@ int Init(int &argc, char *argv[], Options &opt) {
 	  /* getopt_long stores the option index here. */
 	  int option_index = 0;
 
-	  c = getopt_long (argc, argv, "s:t:n:e:f:mcdhv",
+	  c = getopt_long (argc, argv, "s:t:n:e:f:w:mcdhv",
 	  long_options, &option_index);
 
 	  /* Detect the end of the options. */
@@ -153,6 +157,11 @@ int Init(int &argc, char *argv[], Options &opt) {
 
 		  case 'f':
 		    opt.tmax = std::atof(optarg);
+			  break;
+      
+      case 'w':
+        opt.iswriteceveryt=true;
+        opt.writeceveryt=std::atoi(optarg);
 			  break;
 			  
       case 'm':

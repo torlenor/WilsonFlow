@@ -43,6 +43,9 @@ class Options {
     double eps;
     double tmax;
 
+    bool iswriteceveryt;
+    int writeceveryt;
+
     std::string filenamelist;
     std::vector<std::string> filenames;
     int type;
