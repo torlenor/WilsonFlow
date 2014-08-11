@@ -1,7 +1,7 @@
 #!/bin/bash
 MAJOR_VERSION=0
 MINOR_VERSION=0
-REVISION_VERSION=1
+REVISION_VERSION=2
 
 NAME="wilsonflow"
 FILES="flow.cpp init.cpp options.cpp matrixhandling.cpp su3.cc CArray.hpp init.h measuretime.h su3.h ConfigData.hpp matrixhandling.h options.h CMakeLists.txt"
